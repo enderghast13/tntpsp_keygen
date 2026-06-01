@@ -15,7 +15,7 @@
 
 // application metadata
 static const char TITLE[]   = "tntpsp_keygen";
-static const char VERSION[] = "1.0";
+static const char VERSION[] = "1.0.1";
 static const char YEAR[]    = "2026";
 static const char AUTHOR[]  = "enderghast13";
 
@@ -65,12 +65,12 @@ static const u8 SALT_2[]  = {0x00, 0x3B};
 
 
 // Print an error message. Returns the `fprintf()` status.
-static int eprint(const char *title, const char *msg) {
-	return fprintf(stderr, "%s: error: %s\n", title, msg);
+static int eprint(const char *restrict prog, const char *restrict msg) {
+	return fprintf(stderr, "%s: error: %s\n", prog, msg);
 }
 
 // Print usage information.
-static void usage(const char *restrict title) {
+static void usage(const char *restrict prog) {
 	printf(
 		"Usage: %s <e|d> <1|2> <data> | [-h|-u|-v]\n"
 		"Taiko no Tatsujin Portable 1/2 DLC keygen\n"
@@ -84,7 +84,7 @@ static void usage(const char *restrict title) {
 		"  -h, --help     show this help message\n"
 		"  -u, --usage    same as -h\n"
 		"  -v, --version  show version information\n\n",
-		title
+		prog
 	);
 }
 
@@ -110,12 +110,11 @@ static void version(void) {
 
 // Parse command line arguments into `args`.
 static int parse_args(Arguments *restrict args, int argc, const char *restrict argv[]) {
-	// initialize all values
-	args->usage = false;
+	// initialize all member variables except data
+	args->usage   = false;
 	args->version = false;
-	args->mode = DECRYPT;
-	args->gen = PSP1;
-	memset(args->data, 0, sizeof args->data);
+	args->mode    = DECRYPT;
+	args->gen     = PSP1;
 
 	if (argc == 4) {
 		// parsing all arguments
@@ -142,6 +141,8 @@ static int parse_args(Arguments *restrict args, int argc, const char *restrict a
 
 		// data
 		switch (args->mode) {
+			int n;
+
 		case DECRYPT:
 			// read DLC key
 			if (
@@ -149,14 +150,17 @@ static int parse_args(Arguments *restrict args, int argc, const char *restrict a
 				|| sscanf(
 					argv[3],
 					"%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx"
-					"%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx",
+					"%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%n",
 					&args->data[0], &args->data[1], &args->data[2],
 					&args->data[3], &args->data[4], &args->data[5],
 					&args->data[6], &args->data[7], &args->data[8],
 					&args->data[9], &args->data[10], &args->data[11],
 					&args->data[12], &args->data[13], &args->data[14],
-					&args->data[15], &args->data[16], &args->data[17]
+					&args->data[15], &args->data[16], &args->data[17],
+					&n
 				) != 18  // parse into args->data, check if incorrect
+				|| n != 36  // make sure we're at the end
+				            // (in case the very last character was bad)
 			) {
 				eprint(argv[0], E_ARG3);
 				return -1;
@@ -170,14 +174,16 @@ static int parse_args(Arguments *restrict args, int argc, const char *restrict a
 				|| sscanf(
 					argv[3],
 					"%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx"
-					"%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx",
+					"%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx%n",
 					&args->data[0], &args->data[1], &args->data[2],
 					&args->data[3], &args->data[4], &args->data[5],
 					&args->data[6], &args->data[7], &args->data[8],
 					&args->data[9], &args->data[10], &args->data[11],
 					&args->data[12], &args->data[13], &args->data[14],
-					&args->data[15]
+					&args->data[15], &n
 				) != 16  // parse into args->data, check if incorrect
+				|| n != 32  // make sure we're at the end
+				            // (in case the very last character was bad)
 			) {
 				eprint(argv[0], E_ARG3);
 				return -1;
@@ -213,7 +219,8 @@ static int parse_args(Arguments *restrict args, int argc, const char *restrict a
 
 // Generate (encrypt) a DLC key into `dlc_key` from the supplied OpenPSID.
 // Returns 0 on success, some other number on error.
-static int gen_dlc_key(int gen, const u8 openpsid[16], u8 dlc_key[18]) {
+static int gen_dlc_key(int gen, const u8 openpsid[restrict 16],
+                       u8 dlc_key[restrict 18]) {
 	switch (gen) {
 	case PSP1:
 		// using AES
@@ -271,7 +278,8 @@ static int gen_dlc_key(int gen, const u8 openpsid[16], u8 dlc_key[18]) {
 
 // Decrypt the supplied DLC key into an OpenPSID, written into `openpsid`.
 // Retuns 0 on success, some other number on error.
-static int decrypt_dlc_key(int gen, const u8 dlc_key[18], u8 openpsid[16]) {
+static int decrypt_dlc_key(int gen, const u8 dlc_key[restrict 18],
+                           u8 openpsid[restrict 16]) {
 	u8 buf[18];
 	memcpy(buf, dlc_key, 18);
 

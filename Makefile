@@ -24,7 +24,7 @@ $(TITLE): $(OBJECTS)
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 clean:
-	rm -f $(OBJECTS) $(TITLE)
+	rm -f $(OBJECTS) $(TITLE) $(TITLE).exe
 
 check: $(TITLE)
 	./test.sh
