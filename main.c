@@ -204,7 +204,11 @@ static int parse_args(Arguments *restrict args, int argc, const char *restrict a
 		) {
 			args->version = true;
 		} else {  // bad argument
-			eprint(argv[0], E_ARG1);
+			if (strcmp(argv[1], "d") == 0 || strcmp(argv[1], "e") == 0) {
+				eprint(argv[0], E_ARGC);
+			} else {
+				eprint(argv[0], E_ARG1);
+			}
 			return -1;
 		}
 
